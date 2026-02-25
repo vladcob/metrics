@@ -75,7 +75,7 @@ func badRequestMiddleware(next http.Handler) http.Handler {
 		mType := r.PathValue("type")
 		mValue := r.PathValue("value")
 
-		for metricType, _ := range Types {
+		for metricType := range Types {
 			if metricType == mType && isValidType(mType, mValue) {
 				isValid = true
 				break
