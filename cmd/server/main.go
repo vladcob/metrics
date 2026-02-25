@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 )
 
 const (
@@ -9,9 +10,9 @@ const (
 	CounterType = "counter"
 )
 
-var Types = []string{
-	GaugeType,
-	CounterType,
+var Types = map[string]string{
+	GaugeType:   "float64",
+	CounterType: "int64",
 }
 
 type MemStorageInterface interface {
@@ -71,19 +72,36 @@ func notFoundMiddleware(next http.Handler) http.Handler {
 func badRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isValid := false
+		mType := r.PathValue("type")
+		mValue := r.PathValue("value")
 
-		for _, v := range Types {
-			if v == r.PathValue("type") {
+		for metricType, _ := range Types {
+			if metricType == mType && isValidType(mType, mValue) {
 				isValid = true
+				break
 			}
 		}
 
 		if isValid {
 			next.ServeHTTP(w, r)
 		} else {
-
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Invalid metric type"))
 		}
 	})
+}
+
+func isValidType(mType string, mValue string) bool {
+	var err error
+
+	switch mType {
+	case GaugeType:
+		_, err = strconv.ParseFloat(mValue, 64)
+	case CounterType:
+		_, err = strconv.ParseInt(mValue, 10, 64)
+	default:
+		return false
+	}
+
+	return err == nil
 }
